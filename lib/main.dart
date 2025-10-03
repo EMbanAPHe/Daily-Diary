@@ -1,8 +1,4 @@
-// lib/main.dart
-//
-// Minimal SAF-enabled app shell for Daily Diary. Picks a folder via Android's
-// system picker and reads/writes today's entry at YYYY/MM/DD.md.
-import 'dart:async';
+// lib/main.dart — minimal SAF-enabled shell for quick testing.
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'storage/diary_storage.dart';
@@ -79,9 +75,8 @@ class _StorageGateState extends State<StorageGate> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'To run on GrapheneOS / modern Android, select a diary folder '
-                'using the system picker (SAF). The app will store entries at '
-                'YYYY/MM/DD.md under this folder.',
+                'Select a diary folder using the Android system picker (SAF). '
+                'Entries will be stored as YYYY/MM/DD.md under that folder.',
               ),
               const SizedBox(height: 12),
               FilledButton.icon(
@@ -136,11 +131,10 @@ class _DiaryHomeState extends State<DiaryHome> {
     final yyyy = DateFormat('yyyy').format(now);
     final mm = DateFormat('MM').format(now);
     final dd = DateFormat('dd').format(now);
+    _todayPath = f"\{yyyy}/\{mm}/\{dd}.md";
 
-    _todayPath = '\$yyyy/\$mm/\$dd.md';
     await storage.ensureDirs([yyyy, mm]);
-
-    final text = await storage.readText([yyyy, mm, '\$dd.md']) ?? '';
+    final text = await storage.readText([yyyy, mm, '$dd.md']) ?? '';
     _controller.text = text;
     setState(() => _loading = false);
   }
@@ -151,7 +145,7 @@ class _DiaryHomeState extends State<DiaryHome> {
     final mm = DateFormat('MM').format(now);
     final dd = DateFormat('dd').format(now);
 
-    await storage.writeText([yyyy, mm, '\$dd.md'], _controller.text);
+    await storage.writeText([yyyy, mm, '$dd.md'], _controller.text);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Saved')),
@@ -165,16 +159,8 @@ class _DiaryHomeState extends State<DiaryHome> {
       appBar: AppBar(
         title: Text(_todayPath.isEmpty ? 'Today' : _todayPath),
         actions: [
-          IconButton(
-            tooltip: 'Reload',
-            onPressed: _loadToday,
-            icon: const Icon(Icons.refresh),
-          ),
-          IconButton(
-            tooltip: 'Save',
-            onPressed: _save,
-            icon: const Icon(Icons.save),
-          ),
+          IconButton(onPressed: _loadToday, icon: const Icon(Icons.refresh)),
+          IconButton(onPressed: _save, icon: const Icon(Icons.save)),
         ],
       ),
       body: _loading
@@ -186,7 +172,7 @@ class _DiaryHomeState extends State<DiaryHome> {
                 maxLines: null,
                 keyboardType: TextInputType.multiline,
                 decoration: const InputDecoration(
-                  hintText: 'Write your diary entry here…',
+                  hintText: 'Write your diary entry…',
                   border: OutlineInputBorder(),
                 ),
               ),

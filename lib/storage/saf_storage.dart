@@ -17,12 +17,8 @@ class SafStorage implements DiaryStorage {
   Future<void> pickRoot() async {
     // Launches ACTION_OPEN_DOCUMENT_TREE on Android (handled in MainActivity)
     await _ch.invokeMethod('pickRoot');
-    // Android will call back with 'onPicked' – we handle it via setMethodCallHandler
-    final sp = await _prefs;
-    // If Android already sent us a uri before this call returns, it's in _root.
-    if (_root != null) {
-      await sp.setString(_kRootKey, _root!);
-    }
+    // Android will call back with 'onPicked' – handled by setMethodCallHandler below.
+    _ensureHandlerInstalled();
   }
 
   @override
@@ -34,7 +30,6 @@ class SafStorage implements DiaryStorage {
       await _ch.invokeMethod('setRoot', {'uri': _root});
       return true;
     }
-    // start listening for onPicked
     _ensureHandlerInstalled();
     return false;
   }
@@ -48,11 +43,6 @@ class SafStorage implements DiaryStorage {
   }
 
   void _ensureHandlerInstalled() {
-    // Install once
-    if (ServicesBinding.instance.defaultBinaryMessenger
-        .checkMessageHandler('daily_diary/saf')) {
-      return;
-    }
     _ch.setMethodCallHandler((call) async {
       if (call.method == 'onPicked') {
         final uri = call.arguments as String?;
@@ -63,6 +53,12 @@ class SafStorage implements DiaryStorage {
         }
       }
     });
+  }
+
+  void _assertReady() {
+    if (_root == null) {
+      throw StateError('No root set. Call hasRoot() then pickRoot() if needed.');
+    }
   }
 
   @override
@@ -89,11 +85,5 @@ class SafStorage implements DiaryStorage {
       'filename': segments.last,
       'content': content,
     });
-  }
-
-  void _assertReady() {
-    if (_root == null) {
-      throw StateError('No root set. Call hasRoot() then pickRoot() if needed.');
-    }
   }
 }
