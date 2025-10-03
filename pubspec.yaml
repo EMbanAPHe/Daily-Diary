@@ -10,6 +10,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # Add these two:
+  saf: ^2.1.2        # SAF wrapper for picking a directory and operating via URIs
+  shared_preferences: ^2.2.3
   flutter_localizations:
     sdk: flutter
   intl: any
