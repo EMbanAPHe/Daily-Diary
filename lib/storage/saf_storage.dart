@@ -1,18 +1,13 @@
 // lib/storage/saf_storage.dart
-//
-// SAF-backed implementation using the 'saf' Flutter plugin. This avoids legacy
-// direct storage paths and works on GrapheneOS / modern Android (targetSdk 30+).
-//
-// Dependencies required in pubspec.yaml:
-//   saf: ^2.1.2
-//   shared_preferences: ^2.2.3
-//
 import 'dart:async';
-import 'package:saf/saf.dart' as saf;
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'diary_storage.dart';
 
+/// MethodChannel-backed SAF implementation.
+/// Android code is in MainActivity.kt under channel "daily_diary/saf".
 class SafStorage implements DiaryStorage {
+  static const _ch = MethodChannel('daily_diary/saf');
   static const _kRootKey = 'diary_tree_uri';
   String? _root;
 
@@ -20,23 +15,14 @@ class SafStorage implements DiaryStorage {
 
   @override
   Future<void> pickRoot() async {
-    // Opens Android's system folder picker (ACTION_OPEN_DOCUMENT_TREE)
-    final isGranted = await saf.Saf.getDirectoryPermission(isDynamic: true);
-    if (isGranted != true) return;
-
-    final dir = saf.Saf.getDirectory();
-    if (dir == null) return;
-
-    _root = dir.path; // plugin stores a uri-like path internally
+    // Launches ACTION_OPEN_DOCUMENT_TREE on Android (handled in MainActivity)
+    await _ch.invokeMethod('pickRoot');
+    // Android will call back with 'onPicked' – we handle it via setMethodCallHandler
     final sp = await _prefs;
-    await sp.setString(_kRootKey, _root!);
-  }
-
-  @override
-  Future<void> setRoot(String uri) async {
-    _root = uri;
-    final sp = await _prefs;
-    await sp.setString(_kRootKey, _root!);
+    // If Android already sent us a uri before this call returns, it's in _root.
+    if (_root != null) {
+      await sp.setString(_kRootKey, _root!);
+    }
   }
 
   @override
@@ -44,66 +30,70 @@ class SafStorage implements DiaryStorage {
     if (_root != null) return true;
     final sp = await _prefs;
     _root = sp.getString(_kRootKey);
-    return _root != null;
+    if (_root != null) {
+      await _ch.invokeMethod('setRoot', {'uri': _root});
+      return true;
+    }
+    // start listening for onPicked
+    _ensureHandlerInstalled();
+    return false;
   }
 
-  Future<saf.Saf> _openRoot() async {
-    if (!await hasRoot()) {
-      throw StateError('No root URI set. Call pickRoot() first.');
+  @override
+  Future<void> setRoot(String uri) async {
+    _root = uri;
+    final sp = await _prefs;
+    await sp.setString(_kRootKey, _root!);
+    await _ch.invokeMethod('setRoot', {'uri': _root});
+  }
+
+  void _ensureHandlerInstalled() {
+    // Install once
+    if (ServicesBinding.instance.defaultBinaryMessenger
+        .checkMessageHandler('daily_diary/saf')) {
+      return;
     }
-    return saf.Saf(_root!);
+    _ch.setMethodCallHandler((call) async {
+      if (call.method == 'onPicked') {
+        final uri = call.arguments as String?;
+        if (uri != null) {
+          _root = uri;
+          final sp = await _prefs;
+          await sp.setString(_kRootKey, _root!);
+        }
+      }
+    });
   }
 
   @override
   Future<void> ensureDirs(List<String> segments) async {
-    final root = await _openRoot();
-    if (segments.isEmpty) return;
-    var current = root;
-    for (final seg in segments) {
-      final sub = saf.Saf('${current.currentDirectoryPath}/$seg');
-      await sub.cache(); // stage (ensures existence in cache); sync on write
-      current = sub;
-    }
+    _assertReady();
+    await _ch.invokeMethod('ensureDirs', {'segments': segments});
   }
 
   @override
   Future<String?> readText(List<String> segments) async {
-    final root = await _openRoot();
-    if (segments.isEmpty) return null;
-
-    final parts = [...segments];
-    final filename = parts.removeLast();
-
-    var dir = root;
-    for (final seg in parts) {
-      dir = saf.Saf('${dir.currentDirectoryPath}/$seg');
-      await dir.cache();
-    }
-    await dir.cache();
-    final files = await dir.getCachedFilesPath() ?? const <String>[];
-    final match = files.firstWhere(
-      (p) => p.endsWith('/$filename'),
-      orElse: () => '',
-    );
-    if (match.isEmpty) return null;
-    return await dir.readAsString(filename);
+    _assertReady();
+    final res = await _ch.invokeMethod<String>('readText', {
+      'segments': segments.sublist(0, segments.length - 1),
+      'filename': segments.last,
+    });
+    return res;
   }
 
   @override
   Future<void> writeText(List<String> segments, String content) async {
-    final root = await _openRoot();
-    if (segments.isEmpty) return;
+    _assertReady();
+    await _ch.invokeMethod('writeText', {
+      'segments': segments.sublist(0, segments.length - 1),
+      'filename': segments.last,
+      'content': content,
+    });
+  }
 
-    final parts = [...segments];
-    final filename = parts.removeLast();
-
-    var dir = root;
-    for (final seg in parts) {
-      dir = saf.Saf('${dir.currentDirectoryPath}/$seg');
-      await dir.cache();
+  void _assertReady() {
+    if (_root == null) {
+      throw StateError('No root set. Call hasRoot() then pickRoot() if needed.');
     }
-
-    await dir.writeAsString(filename, content); // create or replace
-    await dir.sync(); // push cached changes to source tree
   }
 }
