@@ -11,9 +11,10 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Add these two:
-  saf: ^2.1.2        # SAF wrapper for picking a directory and operating via URIs
+  # SAF-based storage + prefs for persisted URI
+  saf: ^2.1.2
   shared_preferences: ^2.2.3
+
   flutter_localizations:
     sdk: flutter
   intl: any
@@ -21,16 +22,17 @@ dependencies:
   cupertino_icons: ^1.0.8
   path_provider: ^2.0.11
   toml: ^0.16.0
-  shared_preferences: ^2.0.15
   file_picker: ^8.1.7
   flutter_window_close: ^1.0.0
   archive: ^4.0.2
   flex_color_picker: ^3.3.0
   url_launcher: ^6.2.1
-  shared_storage:
-    git:
-      url: https://github.com/AlexBacich/shared-storage
-      ref: 8784c39b909324df8913dd30fa416b8a50d55f49
+
+  # Remove this unless you truly need it elsewhere in the codebase.
+  # shared_storage:
+  #   git:
+  #     url: https://github.com/AlexBacich/shared-storage
+  #     ref: 8784c39b909324df8913dd30fa416b8a50d55f49
 
 dev_dependencies:
   flutter_test:
