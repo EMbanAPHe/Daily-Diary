@@ -1,0 +1,11 @@
+# Paste the following lines into your pubspec.yaml under `dependencies:`
+# (keep existing entries; just add these two)
+#
+# dependencies:
+#   flutter:
+#     sdk: flutter
+#   saf: ^2.1.2
+#   shared_preferences: ^2.2.3
+#
+# After saving pubspec.yaml:
+#   - run `flutter pub get` locally OR let the GitHub Action run it.
