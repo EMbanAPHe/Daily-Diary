@@ -19,7 +19,7 @@ dependencies:
   # Internationalization
   flutter_localizations:
     sdk: flutter
-  intl: ^0.20.2
+  intl: 0.19.0   # MUST match Flutter SDK pin
 
   # UI/UX
   cupertino_icons: ^1.0.8
