@@ -1,7 +1,6 @@
 plugins {
     id "com.android.application"
-    id "org.jetbrains.kotlin.android"       // <- use the modern Kotlin plugin id
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id "org.jetbrains.kotlin.android"
     id "dev.flutter.flutter-gradle-plugin"
 }
 
@@ -17,7 +16,6 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        // AGP 8.x expects Java 17
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -46,7 +44,6 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.release
-            // You can add minify/proguard here later if you need it
         }
     }
 }

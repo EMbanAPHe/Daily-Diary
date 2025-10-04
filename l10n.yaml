@@ -1,9 +1,4 @@
-# Options
-synthetic-package: false
-
-# File paths
-arb-dir: lib/localizations
-output-dir: lib/generated_localizations
+arb-dir: lib/l10n
 template-arb-file: app_en.arb
-output-localization-file: app_localizations.dart
-untranslated-messages-file: untranslated.txt
+output-dir: lib/l10n/generated
+# Removed deprecated 'synthetic-package' option.

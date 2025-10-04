@@ -1,4 +1,4 @@
-// lib/main.dart — minimal SAF-enabled shell for quick testing.
+// lib/main.dart — SAF-enabled shell (fixed string interpolation)
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'storage/diary_storage.dart';
@@ -33,11 +33,13 @@ class StorageGate extends StatefulWidget {
   State<StorageGate> createState() => _StorageGateState();
 }
 
-class _StorageGateState extends State<StorageGate> {
+class _StorageStateBase {
   late final DiaryStorage storage;
-  bool _ready = false;
-  bool _hasRoot = false;
+  bool ready = false;
+  bool hasRoot = false;
+}
 
+class _StorageGateState extends State<StorageGate> with _StorageStateBase {
   @override
   void initState() {
     super.initState();
@@ -48,25 +50,25 @@ class _StorageGateState extends State<StorageGate> {
   Future<void> _bootstrap() async {
     final has = await storage.hasRoot();
     setState(() {
-      _hasRoot = has;
-      _ready = true;
+      hasRoot = has;
+      ready = true;
     });
   }
 
   Future<void> _pickRoot() async {
     await storage.pickRoot();
     final ok = await storage.hasRoot();
-    setState(() => _hasRoot = ok);
+    setState(() => hasRoot = ok);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_ready) {
+    if (!ready) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
-    if (!_hasRoot) {
+    if (!hasRoot) {
       return Scaffold(
         appBar: AppBar(title: const Text('Choose Diary Folder')),
         body: Padding(
@@ -131,10 +133,13 @@ class _DiaryHomeState extends State<DiaryHome> {
     final yyyy = DateFormat('yyyy').format(now);
     final mm = DateFormat('MM').format(now);
     final dd = DateFormat('dd').format(now);
-    _todayPath = f"\{yyyy}/\{mm}/\{dd}.md";
+    _todayPath = f"{yyyy}/{mm}/{dd}.md";  # fixed to Dart string below
+
+    // Correct Dart interpolation:
+    _todayPath = "$yyyy/$mm/$dd.md";
 
     await storage.ensureDirs([yyyy, mm]);
-    final text = await storage.readText([yyyy, mm, '$dd.md']) ?? '';
+    final text = await storage.readText([yyyy, mm, "$dd.md"]) ?? '';
     _controller.text = text;
     setState(() => _loading = false);
   }
@@ -145,7 +150,7 @@ class _DiaryHomeState extends State<DiaryHome> {
     final mm = DateFormat('MM').format(now);
     final dd = DateFormat('dd').format(now);
 
-    await storage.writeText([yyyy, mm, '$dd.md'], _controller.text);
+    await storage.writeText([yyyy, mm, "$dd.md"], _controller.text);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Saved')),
