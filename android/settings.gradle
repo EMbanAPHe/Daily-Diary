@@ -1,4 +1,8 @@
+// Flutter-compatible settings.gradle
+// Fix: ensure Flutter's plugin loader is resolved via the local includeBuild
 pluginManagement {
+    // Important: this points Gradle to the plugin loader that Flutter generates after `flutter pub get`
+    includeBuild("../.dart_tool/flutter/build_plugins")
     repositories {
         google()
         mavenCentral()
@@ -12,4 +16,5 @@ plugins {
     id "org.jetbrains.kotlin.android" version "2.0.21" apply false
 }
 
+// Standard include for the Android app module
 include(":app")
