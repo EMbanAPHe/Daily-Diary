@@ -2,41 +2,48 @@ name: Android Release (Flutter)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main, master ]
-    paths:
-      - "**/*.dart"
-      - "pubspec.yaml"
-      - "android/**"
-      - ".github/workflows/android-release.yml"
 
 jobs:
   build-android:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Set up Flutter (stable)
         uses: subosito/flutter-action@v2
         with:
-          channel: "stable"      # <-- correct usage
+          channel: 'stable'
           cache: true
 
-      - name: Show Flutter version
-        run: flutter --version
+      - name: Flutter doctor
+        run: flutter doctor -v
 
-      - name: Install dependencies
+      - name: Pub get (repo root)
         run: flutter pub get
 
-      - name: Generate localizations (optional but explicit)
+      - name: Verify build_plugins exists (after pub get)
+        run: |
+          ls -la .dart_tool || true
+          ls -la .dart_tool/flutter || true
+          if [ ! -d ".dart_tool/flutter/build_plugins" ]; then
+            echo "::error ::.dart_tool/flutter/build_plugins missing after pub get. Check pubspec for plugin deps (e.g., shared_preferences)."
+            exit 1
+          fi
+
+      - name: Generate localizations
         run: flutter gen-l10n
 
-      - name: Build APK (release)
+      - name: Build release APK
         run: flutter build apk --release
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-release
