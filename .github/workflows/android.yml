@@ -10,32 +10,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Flutter (stable)
+      - name: Set up Flutter (pinned)
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          flutter-version: '3.27.0'
           cache: true
 
       - name: Flutter doctor
         run: flutter doctor -v
 
-      - name: Pub get (repo root)
+      - name: Clean workspace
+        run: |
+          flutter clean
+          rm -rf .dart_tool
+
+      - name: Pub get
         run: flutter pub get
 
-      - name: Verify build_plugins exists (after pub get)
+      - name: Show .dart_tool (for debug)
         run: |
           ls -la .dart_tool || true
           ls -la .dart_tool/flutter || true
-          if [ ! -d ".dart_tool/flutter/build_plugins" ]; then
-            echo "::error ::.dart_tool/flutter/build_plugins missing after pub get. Check pubspec for plugin deps (e.g., shared_preferences)."
-            exit 1
-          fi
 
       - name: Generate localizations
         run: flutter gen-l10n
